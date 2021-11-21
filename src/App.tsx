@@ -4,18 +4,23 @@ import Lyric from "lrc-file-parser";
 import GifTv from "./GifTv";
 import { useEffect, useRef, useState } from "react";
 
-interface Line {
+export interface Line {
+  lineNo: number;
   text: string;
+  translation?: string;
 }
 
-const src =
+const songSrc =
   "https://toside01-1251838060.cos.ap-guangzhou.myqcloud.com/lrc-file-parser%2Ftest2.mp3";
 
 export default function App() {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const lrcLines = useRef<Line[]>([]);
-  const [lrc, setLrc] = useState<Lyric>();
-  const [currentLine, setCurrentLine] = useState<string>("");
+  const lyrics = useRef<Line[]>([]);
+  const [lyricManager, setLyricManager] = useState<Lyric>();
+  const [currentLine, setCurrentLine] = useState<Line>({
+    lineNo: 0,
+    text: ""
+  });
 
   useEffect(() => {
     const encodeLrc =
@@ -34,40 +39,56 @@ export default function App() {
     };
 
     const lrc = new Lyric({
-      onPlay: function (line: number, text: string) {
-        const newLine = lrcLines.current[line].text;
+      onPlay: function (idx: number, line: string) {
+        const newLine = { text: lyrics.current[idx].text, lineNo: idx };
         setCurrentLine(newLine);
       },
       onSetLyric: function (lines: Line[]) {
-        lrcLines.current = lines;
-        console.log(lines);
+        lyrics.current = lines;
       }
     });
 
     lrc.setLyric(b64DecodeUnicode(encodeLrc), b64DecodeUnicode(encodeTLrcText));
 
-    setLrc(lrc);
+    setLyricManager(lrc);
   }, []);
 
   return (
     <div className="App">
-      {lrc && (
-        <>
+      {lyricManager && (
+        <div
+          className="layout"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center"
+          }}
+        >
           <audio
             ref={audioRef}
             id="audio"
-            src={src}
+            src={songSrc}
             onPlay={() => {
               if (audioRef.current) {
-                lrc.play(audioRef.current.currentTime * 1000);
+                lyricManager.play(audioRef.current.currentTime * 1000);
               }
             }}
-            onPause={() => lrc.play()}
-            autoPlay
+            onPause={() => {
+              if (audioRef.current) {
+                lyricManager.pause();
+              }
+            }}
+            //autoPlay
             controls
           ></audio>
-          <GifTv text={currentLine} />
-        </>
+          <div className="gifTV" style={{ marginTop: "20px" }}>
+            <GifTv line={currentLine} />
+          </div>
+          <div className="lyrics" style={{ marginTop: "20px" }}>
+            {currentLine.text}
+          </div>
+        </div>
       )}
     </div>
   );

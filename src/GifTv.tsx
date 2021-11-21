@@ -1,38 +1,42 @@
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { Line } from "./App";
 import "./styles.css";
 
 interface gifProps {
-  text: string;
+  line: Line;
 }
 
+const idleGifURL = "https://gifer.com/embed/757D";
+
 export default function GifTv(props: gifProps) {
-  const { text } = props;
+  const { line } = props;
+  const [frameSrc, setFrameSrc] = useState<string>(idleGifURL);
+
+  useEffect(() => {
+    async function getData() {
+      if (line.lineNo === 0) {
+        setFrameSrc(idleGifURL);
+      } else {
+        const searchTerm = line.text.split(" ").pop();
+        const result = await axios(
+          `https://api.giphy.com/v1/gifs/search?q=${searchTerm}&api_key=dc6zaTOxFJmzC`
+        );
+        const url = result?.data?.data[0]?.embed_url;
+        setFrameSrc(url ?? idleGifURL);
+      }
+    }
+    getData();
+  }, [line]);
+
   return (
-    <div
-      className="gif-tv"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "column"
-      }}
-    >
-      <div
-        className="gif"
-        style={{
-          width: "400px",
-          height: "400px",
-          marginTop: "20px"
-        }}
-      >
-        <img
-          style={{ width: "100%", height: "100%" }}
-          src="https://cdn.glitch.com/0e4d1ff3-5897-47c5-9711-d026c01539b8%2Fbddfd6e4434f42662b009295c9bab86e.gif?v=1573157191712"
-          alt="Computer man"
-        ></img>
-      </div>
-      <div className="lyrics" style={{ marginTop: "20px" }}>
-        {text}
-      </div>
+    <div className="gif">
+      <iframe
+        width="480px"
+        height="360px"
+        title={"GifTv"}
+        src={frameSrc}
+      ></iframe>
     </div>
   );
 }
